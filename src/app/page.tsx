@@ -139,6 +139,7 @@ export default function BuildMaker() {
       health: stats.health !== 100 + 0*5 ? stats.health : base.health,
       physicalDamage: typeof stats.physicalDamage === 'number' ? stats.physicalDamage : base.physicalDamage,
       magicDamage: typeof stats.magicDamage === 'number' ? stats.magicDamage : base.magicDamage,
+      // Use calculated crit chance (luck + class/equipment bonuses). If no calculation available, fall back to base.
       critChance: stats.critChance !== 0 ? stats.critChance : base.critChance,
       critDamage: stats.critDamage || base.critDamage,
       hpRegen: stats.hpRegen,
