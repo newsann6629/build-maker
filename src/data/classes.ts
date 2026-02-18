@@ -10,6 +10,7 @@ export interface GameClass {
     luck?: number;
     [key: string]: number | undefined;
   };
+  derivedFrom?: string[]; // Name of the Base Class(es) required
   description: string;
 }
 
@@ -56,6 +57,7 @@ export const CLASSES: GameClass[] = [
     name: 'Saint',
     type: 'Super',
     path: 'Orderly',
+    derivedFrom: ['Slayer'], // Spear user
     statBonuses: { arcane: 10, endurance: 5, hpRegen: 2 },
     description: 'A holy conduit of light, healing allies and smiting the wicked.'
   },
@@ -63,6 +65,7 @@ export const CLASSES: GameClass[] = [
     name: 'Elementalist',
     type: 'Super',
     path: 'Orderly',
+    derivedFrom: ['Mage'],
     statBonuses: { arcane: 12, speed: 3 },
     description: 'Master of fire, ice, and lightning magic. Deals massive AoE damage.'
   },
@@ -70,6 +73,7 @@ export const CLASSES: GameClass[] = [
     name: 'Paladin',
     type: 'Super',
     path: 'Orderly',
+    derivedFrom: ['Warrior'],
     statBonuses: { strength: 8, endurance: 8, physicalDefense: 10 },
     description: 'A holy warrior clad in heavy armor. The ultimate tank.'
   },
@@ -77,8 +81,33 @@ export const CLASSES: GameClass[] = [
     name: 'Blade Dancer',
     type: 'Super',
     path: 'Orderly',
+    derivedFrom: ['Warrior'], // Sword user
     statBonuses: { speed: 12, strength: 4 },
     description: 'Graceful and deadly, weaving through attacks with incredible speed.'
+  },
+  {
+    name: 'Monk',
+    type: 'Super',
+    path: 'Orderly',
+    derivedFrom: ['Martial Artist'],
+    statBonuses: { strength: 10, endurance: 5, physicalDefense: 5 },
+    description: 'A disciplined fighter who uses chi to strengthen their body and strikes.'
+  },
+  {
+    name: 'Lancer',
+    type: 'Super',
+    path: 'Orderly',
+    derivedFrom: ['Slayer'],
+    statBonuses: { speed: 10, endurance: 5, critChance: 5 },
+    description: 'Master of the spear, piercing through defenses with high speed.'
+  },
+  {
+    name: 'Ranger',
+    type: 'Super',
+    path: 'Orderly',
+    derivedFrom: ['Thief'],
+    statBonuses: { speed: 12, luck: 3 },
+    description: 'A master marksman and tracker, utilizing speed and precision.'
   },
 
   // --- SUPER CLASSES (CHAOTIC) ---
@@ -86,13 +115,23 @@ export const CLASSES: GameClass[] = [
     name: 'Necromancer',
     type: 'Super',
     path: 'Chaotic',
+    derivedFrom: ['Mage'],
     statBonuses: { arcane: 10, luck: 5, energyRegen: 1 },
     description: 'Commands the dead and uses life force as a weapon.'
+  },
+  {
+    name: 'Hexer',
+    type: 'Super',
+    path: 'Chaotic',
+    derivedFrom: ['Mage'],
+    statBonuses: { arcane: 10, endurance: 5, magicDefense: 5 },
+    description: 'Specializes in debilitating curses and dark magic to weaken foes.'
   },
   {
     name: 'Dark Wraith',
     type: 'Super',
     path: 'Chaotic',
+    derivedFrom: ['Martial Artist'],
     statBonuses: { arcane: 8, luck: 7, critChance: 10 },
     description: 'A chaotic assassin who strikes from the shadows with cursed energy.'
   },
@@ -100,15 +139,41 @@ export const CLASSES: GameClass[] = [
     name: 'Berserker',
     type: 'Super',
     path: 'Chaotic',
+    derivedFrom: ['Warrior'],
     statBonuses: { strength: 12, endurance: 3, hpBonus: 50 },
     description: 'A raging warrior who trades defense for overwhelming power.'
+  },
+  {
+    name: 'Brawler',
+    type: 'Super',
+    path: 'Chaotic',
+    derivedFrom: ['Martial Artist'],
+    statBonuses: { strength: 12, speed: 3 },
+    description: 'A brutal fighter who uses raw strength and dirty tactics to win.'
   },
   {
     name: 'Assassin',
     type: 'Super',
     path: 'Chaotic',
+    derivedFrom: ['Thief'],
     statBonuses: { speed: 10, luck: 5, critDamage: 0.5 },
     description: 'Lethal specialist focusing on instant kills and poison.'
+  },
+  {
+    name: 'Rogue',
+    type: 'Super',
+    path: 'Chaotic',
+    derivedFrom: ['Thief'],
+    statBonuses: { luck: 10, strength: 5, critChance: 8 },
+    description: 'A trickster who relies on luck and critical strikes to debilitate foes.'
+  },
+  {
+    name: 'Impaler',
+    type: 'Super',
+    path: 'Chaotic',
+    derivedFrom: ['Slayer'],
+    statBonuses: { strength: 8, arcane: 7 },
+    description: 'Uses dark arts infused spear techniques to inflict heavy bleeding and pain.'
   },
 
   // --- SUB CLASSES ---

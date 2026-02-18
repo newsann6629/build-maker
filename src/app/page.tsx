@@ -21,22 +21,45 @@ export default function BuildMaker() {
     luck: 0
   });
 
-  // Selection State
-  const [selectedClass, setSelectedClass] = useState<GameClass>(CLASSES[0]);
+  // Class Progression State
+  const [baseClass, setBaseClass] = useState<GameClass | null>(CLASSES.find(c => c.type === 'Base') || null);
+  const [classPath, setClassPath] = useState<'Orderly' | 'Chaotic'>('Orderly');
+  const [superClass, setSuperClass] = useState<GameClass | null>(null);
+  const [subClass, setSubClass] = useState<GameClass | null>(null);
+
   const [weapon, setWeapon] = useState<Equipment | null>(null);
   const [armor, setArmor] = useState<Equipment | null>(null);
   const [accessories, setAccessories] = useState<(Equipment | null)[]>([null, null, null, null]);
 
   // Derived Selection Logic
   const classBonuses = useMemo(() => {
-    return {
-      strength: selectedClass.statBonuses.strength || 0,
-      arcane: selectedClass.statBonuses.arcane || 0,
-      endurance: selectedClass.statBonuses.endurance || 0,
-      speed: selectedClass.statBonuses.speed || 0,
-      luck: selectedClass.statBonuses.luck || 0,
+    const bonuses = {
+      strength: 0, arcane: 0, endurance: 0, speed: 0, luck: 0,
+      hpBonus: 0, hpRegen: 0, energyRegen: 0, physicalDefense: 0, magicDefense: 0,
+      critChance: 0, critDamage: 0
     };
-  }, [selectedClass]);
+
+    const activeClasses = [baseClass, superClass, subClass].filter(Boolean) as GameClass[];
+
+    activeClasses.forEach(cls => {
+      bonuses.strength += cls.statBonuses.strength || 0;
+      bonuses.arcane += cls.statBonuses.arcane || 0;
+      bonuses.endurance += cls.statBonuses.endurance || 0;
+      bonuses.speed += cls.statBonuses.speed || 0;
+      bonuses.luck += cls.statBonuses.luck || 0;
+
+      // Advanced Stats from Classes
+      bonuses.hpBonus += cls.statBonuses.hpBonus || 0;
+      bonuses.hpRegen += cls.statBonuses.hpRegen || 0;
+      bonuses.energyRegen += cls.statBonuses.energyRegen || 0;
+      bonuses.physicalDefense += cls.statBonuses.physicalDefense || 0;
+      bonuses.magicDefense += cls.statBonuses.magicDefense || 0;
+      bonuses.critChance += cls.statBonuses.critChance || 0;
+      bonuses.critDamage += cls.statBonuses.critDamage || 0;
+    });
+
+    return bonuses;
+  }, [baseClass, superClass, subClass]);
 
   const equipBonuses = useMemo(() => {
     const bonuses: { [key: string]: number } = {
@@ -134,9 +157,9 @@ export default function BuildMaker() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-maitree font-bold text-white flex items-center gap-3">
                 <Activity className="text-yellow-500 w-6 h-6" />
-                <span className="translate-y-0.5">คุณลักษณะพื้นฐาน</span>
+                <span className="translate-y-0.5">Base Attributes</span>
               </h2>
-              <span className="text-white/20 text-xs font-mono tracking-widest uppercase">Base Attributes</span>
+              <span className="text-white/20 text-xs font-mono tracking-widest uppercase">Base Stats</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
@@ -158,48 +181,179 @@ export default function BuildMaker() {
             </div>
           </section>
 
-          {/* Specialization Section */}
-          <section className="magic-card magic-card-hover border-white/[0.03]">
-            <div className="flex items-center justify-between mb-8">
+          {/* Class Progression Section */}
+          <section className="magic-card magic-card-hover border-white/[0.03] space-y-8">
+            <div className="flex items-center justify-between">
               <h2 className="text-3xl font-maitree font-bold text-white flex items-center gap-3">
                 <Sparkles className="text-purple-400 w-6 h-6" />
-                <span className="translate-y-0.5">สายอาชีพอาคม</span>
+                <span className="translate-y-0.5">เส้นทางอาชีพ</span>
               </h2>
-              <span className="text-white/20 text-xs font-mono tracking-widest uppercase">Specialization</span>
+              <span className="text-white/20 text-xs font-mono tracking-widest uppercase">Class Progression</span>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {CLASSES.map((cls) => (
-                <button
-                  key={cls.name}
-                  onClick={() => setSelectedClass(cls)}
-                  className={`relative p-5 rounded-2xl border transition-all duration-500 group overflow-hidden ${selectedClass.name === cls.name
-                    ? 'border-yellow-500/50 bg-yellow-500/5'
-                    : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
-                    }`}
-                >
-                  {selectedClass.name === cls.name && (
-                    <motion.div layoutId="class-glow" className="absolute inset-0 bg-yellow-500/5 blur-xl -z-10" />
-                  )}
-                  <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors ${selectedClass.name === cls.name ? 'text-yellow-500' : 'text-white/30'
-                    }`}>
-                    {cls.type}
-                  </div>
-                  <div className={`text-sm font-bold transition-all ${selectedClass.name === cls.name ? 'text-white scale-105' : 'text-white/70'
-                    }`}>
-                    {cls.name}
-                  </div>
-                </button>
-              ))}
+            {/* 1. Base Class Selection */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs text-white">1</span>
+                Base Class
+              </h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {CLASSES.filter(c => c.type === 'Base').map((cls) => (
+                  <button
+                    key={cls.name}
+                    onClick={() => setBaseClass(cls)}
+                    className={`relative p-4 rounded-xl border transition-all duration-300 group overflow-hidden text-left ${baseClass?.name === cls.name
+                      ? 'border-yellow-500/50 bg-yellow-500/10'
+                      : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                      }`}
+                  >
+                    <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${baseClass?.name === cls.name ? 'text-yellow-500' : 'text-white/30'
+                      }`}>
+                      Base
+                    </div>
+                    <div className={`font-bold transition-all ${baseClass?.name === cls.name ? 'text-white' : 'text-white/70'
+                      }`}>
+                      {cls.name}
+                    </div>
+                    {baseClass?.name === cls.name && (
+                      <motion.div layoutId="base-glow" className="absolute inset-0 bg-yellow-500/5 blur-md -z-10" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-            <motion.p
-              key={selectedClass.name}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-6 text-white/40 text-sm leading-relaxed border-l-2 border-yellow-500/30 pl-4 italic font-prompt"
-            >
-              {selectedClass.description}
-            </motion.p>
+
+            {/* 2. Path Selection */}
+            <div className="space-y-4 pt-4 border-t border-white/5">
+              <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs text-white">2</span>
+                Choose Your Path
+              </h3>
+              <div className="flex gap-4">
+                {(['Orderly', 'Chaotic'] as const).map((path) => (
+                  <button
+                    key={path}
+                    onClick={() => {
+                      setClassPath(path);
+                      setSuperClass(null); // Reset super class on path change
+                    }}
+                    className={`flex-1 py-4 rounded-xl border transition-all duration-300 relative overflow-hidden ${classPath === path
+                      ? path === 'Orderly'
+                        ? 'border-blue-400/50 bg-blue-500/10 text-blue-100'
+                        : 'border-red-500/50 bg-red-500/10 text-red-100'
+                      : 'border-white/[0.05] bg-white/[0.02] text-white/40 hover:bg-white/[0.05]'
+                      }`}
+                  >
+                    <span className="relative z-10 text-lg font-maitree font-bold">{path}</span>
+                    {classPath === path && (
+                      <motion.div
+                        layoutId="path-glow"
+                        className={`absolute inset-0 blur-xl -z-10 opacity-30 ${path === 'Orderly' ? 'bg-blue-500' : 'bg-red-500'
+                          }`}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Super Class Selection */}
+            <div className="space-y-4 pt-4 border-t border-white/5">
+              <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs text-white">3</span>
+                Super Class
+              </h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {CLASSES.filter(c =>
+                  c.type === 'Super' &&
+                  c.path === classPath &&
+                  baseClass && c.derivedFrom?.includes(baseClass.name)
+                ).map((cls) => (
+                  <button
+                    key={cls.name}
+                    onClick={() => setSuperClass(cls)}
+                    className={`relative p-4 rounded-xl border transition-all duration-300 group overflow-hidden text-left ${superClass?.name === cls.name
+                      ? classPath === 'Orderly'
+                        ? 'border-blue-400/50 bg-blue-500/10'
+                        : 'border-red-500/50 bg-red-500/10'
+                      : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                      }`}
+                  >
+                    <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${superClass?.name === cls.name
+                      ? classPath === 'Orderly' ? 'text-blue-400' : 'text-red-400'
+                      : 'text-white/30'
+                      }`}>
+                      Super
+                    </div>
+                    <div className={`font-bold transition-all ${superClass?.name === cls.name ? 'text-white' : 'text-white/70'
+                      }`}>
+                      {cls.name}
+                    </div>
+                  </button>
+                ))}
+                {CLASSES.filter(c =>
+                  c.type === 'Super' &&
+                  c.path === classPath &&
+                  baseClass && c.derivedFrom?.includes(baseClass.name)
+                ).length === 0 && (
+                    <div className="col-span-2 lg:col-span-4 text-center py-8 text-white/20 text-sm border border-dashed border-white/10 rounded-xl">
+                      No compatible Super Classes found for {baseClass?.name} ({classPath})
+                    </div>
+                  )}
+              </div>
+            </div>
+
+            {/* 4. Sub Class Selection */}
+            <div className="space-y-4 pt-4 border-t border-white/5">
+              <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs text-white">4</span>
+                Sub Class (Optional)
+              </h3>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                {CLASSES.filter(c => c.type === 'Sub').map((cls) => (
+                  <button
+                    key={cls.name}
+                    onClick={() => setSubClass(subClass?.name === cls.name ? null : cls)}
+                    className={`relative p-4 rounded-xl border transition-all duration-300 group overflow-hidden text-left ${subClass?.name === cls.name
+                      ? 'border-green-400/50 bg-green-500/10'
+                      : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                      }`}
+                  >
+                    <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${subClass?.name === cls.name ? 'text-green-400' : 'text-white/30'
+                      }`}>
+                      Sub
+                    </div>
+                    <div className={`font-bold transition-all ${subClass?.name === cls.name ? 'text-white' : 'text-white/70'
+                      }`}>
+                      {cls.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Descriptions */}
+            <div className="mt-6 pt-6 border-t border-white/5 space-y-4">
+              {baseClass && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-white/40 text-sm border-l-2 border-yellow-500/30 pl-4">
+                  <span className="text-yellow-500 font-bold block text-xs uppercase tracking-widest mb-1">{baseClass.name}</span>
+                  {baseClass.description}
+                </motion.p>
+              )}
+              {superClass && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`text-white/40 text-sm border-l-2 pl-4 ${classPath === 'Orderly' ? 'border-blue-500/30' : 'border-red-500/30'}`}>
+                  <span className={`font-bold block text-xs uppercase tracking-widest mb-1 ${classPath === 'Orderly' ? 'text-blue-400' : 'text-red-400'}`}>{superClass.name}</span>
+                  {superClass.description}
+                </motion.p>
+              )}
+              {subClass && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-white/40 text-sm border-l-2 border-green-500/30 pl-4">
+                  <span className="text-green-500 font-bold block text-xs uppercase tracking-widest mb-1">{subClass.name}</span>
+                  {subClass.description}
+                </motion.p>
+              )}
+            </div>
+
           </section>
 
           {/* Arsenal Section */}
@@ -207,9 +361,9 @@ export default function BuildMaker() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-maitree font-bold text-white flex items-center gap-3">
                 <Sword className="text-blue-400 w-6 h-6" />
-                <span className="translate-y-0.5">คลังศาสตรา</span>
+                <span className="translate-y-0.5">Arsenal & Relics</span>
               </h2>
-              <span className="text-white/20 text-xs font-mono tracking-widest uppercase">Arsenal & Relics</span>
+              <span className="text-white/20 text-xs font-mono tracking-widest uppercase">Weapons & Gear</span>
             </div>
 
             <div className="space-y-6">
@@ -299,9 +453,9 @@ export default function BuildMaker() {
             <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6">
               <h2 className="text-2xl font-maitree font-black text-black flex items-center gap-2">
                 <Target className="w-6 h-6" />
-                <span className="translate-y-0.5">ผลลัพธ์อาวุธยุทโธปกรณ์</span>
+                <span className="translate-y-0.5">Final Build Output</span>
               </h2>
-              <p className="text-black/60 text-[10px] font-bold uppercase tracking-widest mt-1">Final Build Output</p>
+              <p className="text-black/60 text-[10px] font-bold uppercase tracking-widest mt-1">Total Stats Calculation</p>
             </div>
 
             <div className="p-8 space-y-6">
@@ -417,7 +571,7 @@ export default function BuildMaker() {
                   onClick={() => window.print()}
                   className="btn-magic btn-magic-gold w-full py-4 text-base font-maitree font-bold"
                 >
-                  บันทึกประวัติการสร้างอาวุธ
+                  Save Build Snapshot
                 </button>
               </div>
             </div>
