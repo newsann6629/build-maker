@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  /* Default (Chaotic) Variables */
+  --background: #050506;
+  --foreground: #f8fafc;
+  --card-bg: rgba(15, 15, 20, 0.8);
+  --card-border: rgba(139, 92, 246, 0.1);
+  --accent-gold: #eab308;
+  --accent-primary: #8b5cf6;
+  /* Purple for Chaotic */
+  --accent-secondary: #ef4444;
+  /* Red for Chaotic */
+  --glow-color: rgba(139, 92, 246, 0.2);
+  --selection-bg: rgba(139, 92, 246, 0.1);
+}
+
+[data-theme="orderly"] {
+  --background: #f0f4f8;
+  --foreground: #1e293b;
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --card-border: rgba(56, 189, 248, 0.2);
+  --accent-gold: #f59e0b;
+  --accent-primary: #0ea5e9;
+  /* Sky Blue for Orderly */
+  --accent-secondary: #eab308;
+  /* Gold for Orderly */
+  --glow-color: rgba(14, 165, 233, 0.15);
+  --selection-bg: rgba(14, 165, 233, 0.1);
+}
+
+[data-theme="chaotic"] {
+  --background: #050506;
+  --foreground: #f8fafc;
+  --card-bg: rgba(15, 15, 20, 0.8);
+  --card-border: rgba(139, 92, 246, 0.1);
+  --accent-gold: #eab308;
+  --accent-primary: #8b5cf6;
+  /* Purple for Chaotic */
+  --accent-secondary: #ef4444;
+  /* Red for Chaotic */
+  --glow-color: rgba(139, 92, 246, 0.2);
+  --selection-bg: rgba(139, 92, 246, 0.1);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Prompt', 'Outfit', sans-serif;
+  background-image:
+    radial-gradient(circle at 0% 0%, var(--glow-color) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(234, 179, 8, 0.05) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+@theme {
+  --color-arcane-gold: var(--accent-gold);
+  --color-arcane-dark: var(--background);
+  --color-arcane-card: var(--card-bg);
+  --color-arcane-accent: var(--accent-primary);
+  --color-arcane-success: #10b981;
+  --color-arcane-danger: #ef4444;
+  --color-arcane-secondary: var(--accent-secondary);
+  --color-arcane-glow: var(--glow-color);
+  --color-arcane-selection: var(--selection-bg);
+
+  --font-maitree: "Maitree", serif;
+  --font-prompt: "Prompt", sans-serif;
+  --font-outfit: "Outfit", sans-serif;
+}
+
+@layer components {
+  .magic-card {
+    @apply bg-arcane-card backdrop-blur-2xl border border-white/5 rounded-3xl p-8 transition-all duration-300;
+    box-shadow: 0 0 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .magic-card-hover {
+    @apply hover:border-arcane-accent/30;
+  }
+
+  .magic-card-hover:hover {
+    box-shadow: 0 0 30px -10px rgba(139, 92, 246, 0.2);
+  }
+
+  .gold-text {
+    @apply bg-gradient-to-br from-yellow-200 via-yellow-500 to-yellow-700 bg-clip-text text-transparent font-maitree;
+  }
+
+  .premium-input {
+    @apply bg-white/[0.03] border border-white/10 rounded-xl py-3 px-5 text-white w-full focus:outline-none focus:border-arcane-accent focus:bg-white/[0.07] transition-all placeholder:text-white/20;
+  }
+
+  .btn-magic {
+    @apply relative overflow-hidden bg-white/5 border border-white/10 text-white font-semibold py-3 px-8 rounded-2xl transition-all hover:bg-white/10 active:scale-95 flex items-center justify-center gap-2;
+  }
+
+  .btn-magic-gold {
+    @apply bg-arcane-gold/10 border-arcane-gold/30 text-arcane-gold hover:bg-arcane-gold/20;
+  }
+}
+
+.stat-glow-red {
+  box-shadow: 0 0 20px -5px rgba(239, 68, 68, 0.2);
+}
+
+.stat-glow-orange {
+  box-shadow: 0 0 20px -5px rgba(251, 146, 60, 0.2);
+}
+
+.stat-glow-blue {
+  box-shadow: 0 0 20px -5px rgba(96, 165, 250, 0.2);
+}
+
+.stat-glow-green {
+  box-shadow: 0 0 20px -5px rgba(74, 222, 128, 0.2);
+}
+
+.stat-glow-emerald {
+  box-shadow: 0 0 20px -5px rgba(52, 211, 153, 0.2);
+}
