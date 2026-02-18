@@ -41,6 +41,8 @@ export default function BuildMaker() {
   const classBonuses = useMemo(() => {
     const bonuses = {
       strength: 0, arcane: 0, endurance: 0, speed: 0, luck: 0,
+      // percent modifiers
+      strengthPercent: 0, arcanePercent: 0, endurancePercent: 0, speedPercent: 0, luckPercent: 0,
       hpBonus: 0, hpRegen: 0, energyRegen: 0, physicalDefense: 0, magicDefense: 0,
       critChance: 0, critDamage: 0
     };
@@ -53,6 +55,11 @@ export default function BuildMaker() {
       bonuses.endurance += cls.statBonuses.endurance || 0;
       bonuses.speed += cls.statBonuses.speed || 0;
       bonuses.luck += cls.statBonuses.luck || 0;
+      bonuses.strengthPercent += (cls.statBonuses as any).strengthPercent || 0;
+      bonuses.arcanePercent += (cls.statBonuses as any).arcanePercent || 0;
+      bonuses.endurancePercent += (cls.statBonuses as any).endurancePercent || 0;
+      bonuses.speedPercent += (cls.statBonuses as any).speedPercent || 0;
+      bonuses.luckPercent += (cls.statBonuses as any).luckPercent || 0;
 
       // Advanced Stats from Classes
       bonuses.hpBonus += cls.statBonuses.hpBonus || 0;
@@ -70,6 +77,8 @@ export default function BuildMaker() {
   const equipBonuses = useMemo(() => {
     const bonuses: { [key: string]: number } = {
       strength: 0, arcane: 0, endurance: 0, speed: 0, luck: 0,
+      // percent modifiers
+      strengthPercent: 0, arcanePercent: 0, endurancePercent: 0, speedPercent: 0, luckPercent: 0,
       critChance: 0, critDamage: 0, hpBonus: 0,
       hpRegen: 0, energyRegen: 0, physicalDefense: 0, magicDefense: 0
     };
@@ -84,6 +93,11 @@ export default function BuildMaker() {
         bonuses.endurance += item.statBonuses.endurance || 0;
         bonuses.speed += item.statBonuses.speed || 0;
         bonuses.luck += item.statBonuses.luck || 0;
+        bonuses.strengthPercent += (item.statBonuses as any).strengthPercent || 0;
+        bonuses.arcanePercent += (item.statBonuses as any).arcanePercent || 0;
+        bonuses.endurancePercent += (item.statBonuses as any).endurancePercent || 0;
+        bonuses.speedPercent += (item.statBonuses as any).speedPercent || 0;
+        bonuses.luckPercent += (item.statBonuses as any).luckPercent || 0;
         bonuses.critChance += item.statBonuses.critChance || 0;
         bonuses.critDamage += item.statBonuses.critDamage || 0;
         bonuses.hpBonus += item.statBonuses.hpBonus || 0;

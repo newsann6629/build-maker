@@ -8,6 +8,12 @@ export interface Equipment {
         endurance?: number;
         speed?: number;
         luck?: number;
+        // Percent modifiers (applied to the total stat after flats)
+        strengthPercent?: number;
+        arcanePercent?: number;
+        endurancePercent?: number;
+        speedPercent?: number;
+        luckPercent?: number;
         critChance?: number;
         critDamage?: number;
         hpBonus?: number;
@@ -200,7 +206,8 @@ export const EQUIPMENT: Equipment[] = [
         name: 'Wandering Practitioner',
         slot: 'Armor',
         description: 'Flexible gi for martial artists.',
-        statBonuses: { strength: 10, speed: 5, hpBonus: 30 }
+        // Grants flat Strength plus a 10% increase to total Strength
+        statBonuses: { strength: 10, speed: 5, hpBonus: 30, strengthPercent: 10 }
     },
 
     // --- ACCESSORIES (GEARS) ---
