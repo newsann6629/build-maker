@@ -281,7 +281,9 @@ export const EQUIPMENT: Equipment[] = [
         name: 'Crystal Sphere',
         slot: 'Accessory',
         description: 'Perfectly round and clear.',
-        statBonuses: { critChance: 5, arcane: 2 },
+        // Crystal Sphere grants crit chance but should NOT increase ranged/magic damage.
+        // Removed `arcane: 2` so it no longer boosts ranged damage through ARC.
+        statBonuses: { critChance: 5 },
         passiveEffects: ['Removes Crit Fatigue']
     },
     {

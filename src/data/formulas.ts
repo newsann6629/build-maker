@@ -29,15 +29,21 @@ export const calculateStats = (
     const totalLuck = base.luck + (classBonuses.luck || 0) + (equipBonuses.luck || 0);
     const totalSpeed = base.speed + (classBonuses.speed || 0) + (equipBonuses.speed || 0);
 
+    // Tuned multipliers (per-point) to match in-game numbers
+    // STR -> use 25/18 (~1.388888...) so STR 9 -> +12.5% => 112.5%
+    // ARC -> use 7/5 (1.4) so ARC 10 -> +14.0% => 114.0%
+    const STR_DMG_PER_POINT = 25 / 18;
+    const ARC_DMG_PER_POINT = 7 / 5;
+
     return {
         // 100 base HP + 5 HP per Endurance + flat bonuses
         health: 100 + (totalEnd * 5) + (classBonuses.hpBonus || 0) + (equipBonuses.hpBonus || 0),
 
-        // Physical damage scales with STR (approximate multiplier)
-        physicalDamage: 10 + (totalStr * 2.5),
+        // Physical and Magic/Ranged damage should start at 100% and add scaling
+        physicalDamage: 100 + (totalStr * STR_DMG_PER_POINT),
 
         // Magic/Range damage scales with ARC
-        magicDamage: 10 + (totalArc * 2.5),
+        magicDamage: 100 + (totalArc * ARC_DMG_PER_POINT),
 
         // Crit chance scaling per LCK: tuned so LCK 205 -> ~78.31% from luck alone
         // then equipment/class flat % bonuses are added on top (e.g. +5% from gear)

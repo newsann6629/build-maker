@@ -133,13 +133,14 @@ export default function BuildMaker() {
       magicDefense: 0
     };
     const stats = calculateStats(combinedBaseStats, classBonuses, equipBonuses);
-    // Add base to calculated (except for critDamage, critChance, which should be replaced if calculated is not base)
+    // Merge calculated stats with game base values.
+    // Ensure base crit chance is always included in the final displayed crit chance
     return {
       health: stats.health !== 100 + 0*5 ? stats.health : base.health,
-      physicalDamage: stats.physicalDamage !== 10 ? stats.physicalDamage : base.physicalDamage,
-      magicDamage: stats.magicDamage !== 10 ? stats.magicDamage : base.magicDamage,
+      physicalDamage: typeof stats.physicalDamage === 'number' ? stats.physicalDamage : base.physicalDamage,
+      magicDamage: typeof stats.magicDamage === 'number' ? stats.magicDamage : base.magicDamage,
       critChance: stats.critChance !== 0 ? stats.critChance : base.critChance,
-      critDamage: stats.critDamage !== 1.5 ? stats.critDamage : base.critDamage,
+      critDamage: stats.critDamage || base.critDamage,
       hpRegen: stats.hpRegen,
       energyRegen: stats.energyRegen,
       physicalDefense: stats.physicalDefense,
@@ -151,7 +152,8 @@ export default function BuildMaker() {
 
   // Stat cap logic (level cap and points per level declared earlier)
   const raceBonus = selectedRace?.modifiers?.extraStatPoints || 0;
-  const STAT_CAP = (LEVEL_CAP * POINTS_PER_LEVEL) + raceBonus; // 200 + bonus
+  // Start at level 1 and gain points on each level-up: (LEVEL_CAP - 1) * POINTS_PER_LEVEL
+  const STAT_CAP = ((LEVEL_CAP - 1) * POINTS_PER_LEVEL) + raceBonus; // e.g., 195 + bonus
   const totalStatPoints = Object.values(baseStats).reduce((a, b) => a + (b || 0), 0);
   const remainingPoints = STAT_CAP - totalStatPoints;
 
@@ -244,7 +246,8 @@ export default function BuildMaker() {
                   strength: 'STR', arcane: 'ARC', endurance: 'END', speed: 'SPD', luck: 'LCK'
                 };
                 const raceVal = selectedRace ? ((selectedRace.baseStats[raceKeyMap[key]] || 0) + raceScaleIncrements) : 0;
-                const totalVal = combinedBaseStats[key as keyof typeof combinedBaseStats] ?? 0;
+                // Show total including class and equipment bonuses so UI matches displayed final stats
+                const totalVal = (combinedBaseStats[key as keyof typeof combinedBaseStats] ?? 0) + (classBonuses[key as keyof typeof classBonuses] || 0) + (equipBonuses[key as keyof typeof equipBonuses] || 0);
                 return (
                   <div key={stat} className="group flex flex-col items-center gap-3 p-4 bg-white/2 bg-opacity-2 rounded-2xl border border-white/5">
                     <label className="text-[11px] text-center font-bold text-white/40 uppercase tracking-[0.12em] flex items-center gap-2">
