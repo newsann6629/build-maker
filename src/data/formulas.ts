@@ -39,11 +39,15 @@ export const calculateStats = (
         // Magic/Range damage scales with ARC
         magicDamage: 10 + (totalArc * 2.5),
 
-        // Luck gives ~0.44% crit chance per point
-        critChance: (totalLuck * 0.44) + (classBonuses.critChance || 0) + (equipBonuses.critChance || 0),
+        // Crit chance scaling per LCK: tuned so LCK 205 -> ~78.31% from luck alone
+        // then equipment/class flat % bonuses are added on top (e.g. +5% from gear)
+        // => use 0.382% per LCK point
+        critChance: (totalLuck * 0.382) + (classBonuses.critChance || 0) + (equipBonuses.critChance || 0),
 
-        // Luck gives ~0.02x crit multiplier per point, base is 1.5x
-        critDamage: 1.5 + (totalLuck * 0.02) + (((classBonuses.critDamage || 0) + (equipBonuses.critDamage || 0)) / 100),
+        // Crit damage: base multiplier closer to in-game baseline (1.75x)
+        // Per-LCK scaling tuned so LCK 205 -> ~2.26x total (without extra critDamage% items)
+        // per-point increment ~= (2.26 - 1.75) / 205 ~= 0.0024878
+        critDamage: 1.75 + (totalLuck * 0.0024878) + (((classBonuses.critDamage || 0) + (equipBonuses.critDamage || 0)) / 100),
 
         // New Stats
         hpRegen: (classBonuses.hpRegen || 0) + (equipBonuses.hpRegen || 0),

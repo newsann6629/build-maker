@@ -6,13 +6,18 @@ import { Sword, Shield, Zap, Sparkles, Heart, Activity, Dice5, Target } from 'lu
 import { CLASSES, GameClass } from '@/data/classes';
 import { EQUIPMENT, Equipment } from '@/data/equipment';
 import { calculateStats, BaseStats } from '@/data/formulas';
+import { RACES, Race } from '@/data/races';
 
 import { useTheme } from '@/components/ThemeContext';
 
 export default function BuildMaker() {
   const { theme, toggleTheme } = useTheme();
 
-  // Base Stats State
+
+  // Race State
+  const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+
+  // Base Stats State (user input, not including race base)
   const [baseStats, setBaseStats] = useState<BaseStats>({
     strength: 0,
     arcane: 0,
@@ -22,8 +27,9 @@ export default function BuildMaker() {
   });
 
   // Class Progression State
-  const [baseClass, setBaseClass] = useState<GameClass | null>(CLASSES.find(c => c.type === 'Base') || null);
-  const [classPath, setClassPath] = useState<'Orderly' | 'Chaotic'>('Orderly');
+  const [baseClass, setBaseClass] = useState<GameClass | null>(null);
+  const [classPath, setClassPath] =
+    useState<'Orderly' | 'Neutral' | 'Chaotic'>('Orderly');
   const [superClass, setSuperClass] = useState<GameClass | null>(null);
   const [subClass, setSubClass] = useState<GameClass | null>(null);
 
@@ -91,12 +97,71 @@ export default function BuildMaker() {
     return bonuses as BaseStats & { [key: string]: number };
   }, [weapon, armor, accessories]);
 
+
+  // Game base stat (0 for all, only race and user points)
+  const GAME_BASE_STAT = { strength: 0, arcane: 0, endurance: 0, speed: 0, luck: 0 };
+
+  // Level / scaling constants (used for race per-5-level scaling)
+  const LEVEL_CAP = 40; // used only for race scaling increments; kept configurable
+  const POINTS_PER_LEVEL = 5;
+  const raceScaleIncrements = Math.floor(LEVEL_CAP / 5); // +1 every 5 levels
+
+  // Combine: game base + race + user
+  const combinedBaseStats = useMemo(() => {
+    if (!selectedRace) return { ...GAME_BASE_STAT };
+
+    return {
+      strength: GAME_BASE_STAT.strength + (selectedRace.baseStats.STR || 0) + raceScaleIncrements + (baseStats.strength || 0),
+      arcane: GAME_BASE_STAT.arcane + (selectedRace.baseStats.ARC || 0) + raceScaleIncrements + (baseStats.arcane || 0),
+      endurance: GAME_BASE_STAT.endurance + (selectedRace.baseStats.END || 0) + raceScaleIncrements + (baseStats.endurance || 0),
+      speed: GAME_BASE_STAT.speed + (selectedRace.baseStats.SPD || 0) + raceScaleIncrements + (baseStats.speed || 0),
+      luck: GAME_BASE_STAT.luck + (selectedRace.baseStats.LCK || 0) + raceScaleIncrements + (baseStats.luck || 0),
+    };
+  }, [baseStats, selectedRace, raceScaleIncrements]);
+
   const finalStats = useMemo(() => {
-    return calculateStats(baseStats, classBonuses, equipBonuses);
-  }, [baseStats, classBonuses, equipBonuses]);
+    // Always start with these base stats, then add on top
+    const base = {
+      health: 55,
+      physicalDamage: 100,
+      magicDamage: 100,
+      critChance: 25,
+      critDamage: 1.75,
+      hpRegen: 0,
+      energyRegen: 0,
+      physicalDefense: 0,
+      magicDefense: 0
+    };
+    const stats = calculateStats(combinedBaseStats, classBonuses, equipBonuses);
+    // Add base to calculated (except for critDamage, critChance, which should be replaced if calculated is not base)
+    return {
+      health: stats.health !== 100 + 0*5 ? stats.health : base.health,
+      physicalDamage: stats.physicalDamage !== 10 ? stats.physicalDamage : base.physicalDamage,
+      magicDamage: stats.magicDamage !== 10 ? stats.magicDamage : base.magicDamage,
+      critChance: stats.critChance !== 0 ? stats.critChance : base.critChance,
+      critDamage: stats.critDamage !== 1.5 ? stats.critDamage : base.critDamage,
+      hpRegen: stats.hpRegen,
+      energyRegen: stats.energyRegen,
+      physicalDefense: stats.physicalDefense,
+      magicDefense: stats.magicDefense
+    };
+  }, [combinedBaseStats, classBonuses, equipBonuses]);
+
+
+
+  // Stat cap logic (level cap and points per level declared earlier)
+  const raceBonus = selectedRace?.modifiers?.extraStatPoints || 0;
+  const STAT_CAP = (LEVEL_CAP * POINTS_PER_LEVEL) + raceBonus; // 200 + bonus
+  const totalStatPoints = Object.values(baseStats).reduce((a, b) => a + (b || 0), 0);
+  const remainingPoints = STAT_CAP - totalStatPoints;
 
   const handleStatChange = (stat: keyof BaseStats, value: string) => {
-    const num = Math.max(0, parseInt(value) || 0);
+    let num = Math.max(0, parseInt(value) || 0);
+    // Clamp so total does not exceed cap
+    const otherTotal = totalStatPoints - (baseStats[stat] || 0);
+    if (otherTotal + num > STAT_CAP) {
+      num = Math.max(0, STAT_CAP - otherTotal);
+    }
     setBaseStats(prev => ({ ...prev, [stat]: num }));
   };
 
@@ -109,51 +174,57 @@ export default function BuildMaker() {
   };
 
   return (
-    <main className="min-h-screen p-4 md:p-12 max-w-7xl mx-auto selection:bg-yellow-500/30 transition-colors duration-500">
-      {/* Premium Header */}
-      <header className="mb-16 text-center relative pointer-events-none">
-        {/* Toggle Switch */}
-        <div className="absolute top-0 right-0 pointer-events-auto">
-          <button
-            onClick={toggleTheme}
-            className="relative group flex items-center gap-3 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
-          >
-            <span className={`text-xs font-bold tracking-widest uppercase transition-colors ${theme === 'orderly' ? 'text-blue-400' : 'text-gray-500'}`}>Orderly</span>
-            <div className="w-12 h-6 rounded-full bg-black/50 border border-white/10 relative p-1">
-              <motion.div
-                className={`w-4 h-4 rounded-full shadow-lg ${theme === 'orderly' ? 'bg-blue-400 shadow-blue-500/50' : 'bg-red-500 shadow-red-500/50'}`}
-                animate={{ x: theme === 'orderly' ? 0 : 22 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              />
-            </div>
-            <span className={`text-xs font-bold tracking-widest uppercase transition-colors ${theme === 'chaotic' ? 'text-red-500' : 'text-gray-500'}`}>Chaotic</span>
-          </button>
-        </div>
-
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 blur-[100px] rounded-full -z-10 transition-colors duration-1000"
-          style={{ backgroundColor: theme === 'orderly' ? 'var(--color-arcane-glow)' : 'rgba(239, 68, 68, 0.1)' }} />
-        <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        >
-          <h1 className="text-6xl md:text-8xl font-bold gold-text mb-6 tracking-tighter drop-shadow-2xl">
-            Arcane Build Maker
-          </h1>
-          <div className="flex items-center justify-center gap-4 text-white/40 font-light tracking-[0.2em] uppercase text-xs md:text-sm">
-            <span className="w-8 h-[1px] bg-white/10" />
-            Forge Your Destiny • Arcanes Lineage
-            <span className="w-8 h-[1px] bg-white/10" />
-          </div>
-        </motion.div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Main Interface: Left Column */}
+        <main className="min-h-screen p-4 md:p-12 max-w-7xl mx-auto selection:bg-yellow-500/30 transition-colors duration-500">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-10">
+          {/* Race Selection Section */}
+          <section className="magic-card magic-card-hover border-white/3">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-maitree font-bold text-white flex items-center gap-3">
+                <Sparkles className="text-blue-400 w-6 h-6" />
+                <span className="translate-y-0.5">เลือกเผ่า (Race)</span>
+              </h2>
+              <span className="text-white/20 text-xs font-mono tracking-widest uppercase">Race</span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {RACES.map((race) => (
+                <button
+                  key={race.name}
+                  className={`px-4 py-2 rounded-lg border font-bold text-white transition-all duration-200 text-sm ${selectedRace?.name === race.name ? 'border-yellow-400 bg-yellow-500/10 shadow-lg' : 'border-white/10 bg-white/5 hover:border-yellow-400'}`}
+                  onClick={() => setSelectedRace(race)}
+                  type="button"
+                >
+                  {race.name}
+                </button>
+              ))}
+            </div>
+            {selectedRace && (
+              <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
+                <div className="font-bold text-yellow-400 text-lg mb-1">{selectedRace.name}</div>
+                <div className="text-white/80 text-sm mb-2">{selectedRace.description}</div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {Object.entries(selectedRace.baseStats).map(([stat, val]) => (
+                    <span key={stat} className="px-2 py-0.5 rounded bg-white/10 text-[10px] text-white/60 font-bold uppercase">{stat}: {val}</span>
+                  ))}
+                </div>
+                {selectedRace.modifiers && (
+                  <div className="mt-1 text-xs text-white/60">
+                    <b>Ability:</b> {Object.entries(selectedRace.modifiers).filter(([k]) => k !== 'tags').map(([k, v]) => `${k}: ${v}`).join(', ')}
+                    {selectedRace.modifiers.tags && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {selectedRace.modifiers.tags.map(tag => (
+                          <span key={tag} className="px-2 py-0.5 rounded bg-blue-500/20 text-[10px] text-blue-200 font-bold uppercase">{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
 
           {/* Base Stats Section */}
-          <section className="magic-card magic-card-hover border-white/[0.03]">
+          <section className="magic-card magic-card-hover border-white/3">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-maitree font-bold text-white flex items-center gap-3">
                 <Activity className="text-yellow-500 w-6 h-6" />
@@ -162,27 +233,47 @@ export default function BuildMaker() {
               <span className="text-white/20 text-xs font-mono tracking-widest uppercase">Base Stats</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-              {Object.keys(baseStats).map((stat) => (
-                <div key={stat} className="group flex flex-col gap-2">
-                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] flex items-center gap-1.5 px-1">
-                    {statIcons[stat]}
-                    {stat}
-                  </label>
-                  <input
-                    type="number"
-                    value={baseStats[stat as keyof BaseStats]}
-                    onChange={(e) => handleStatChange(stat as keyof BaseStats, e.target.value)}
-                    className="premium-input text-lg font-semibold group-hover:border-white/20"
-                    placeholder="0"
-                  />
-                </div>
-              ))}
+            <div className="mb-2 text-xs text-yellow-400 font-bold text-right">
+              แต้มอัพทั้งหมด: {STAT_CAP} (เลเวล {LEVEL_CAP} x {POINTS_PER_LEVEL} + เผ่า {raceBonus > 0 ? `+${raceBonus}` : ''})<br />
+              เหลือแต้มอัพ: {remainingPoints}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 py-2">
+              {Object.keys(baseStats).map((stat) => {
+                const key = stat as keyof BaseStats;
+                const raceKeyMap: Record<keyof BaseStats, keyof import('../data/races').StatBlock> = {
+                  strength: 'STR', arcane: 'ARC', endurance: 'END', speed: 'SPD', luck: 'LCK'
+                };
+                const raceVal = selectedRace ? ((selectedRace.baseStats[raceKeyMap[key]] || 0) + raceScaleIncrements) : 0;
+                const totalVal = combinedBaseStats[key as keyof typeof combinedBaseStats] ?? 0;
+                return (
+                  <div key={stat} className="group flex flex-col items-center gap-3 p-4 bg-white/2 bg-opacity-2 rounded-2xl border border-white/5">
+                    <label className="text-[11px] text-center font-bold text-white/40 uppercase tracking-[0.12em] flex items-center gap-2">
+                      {statIcons[stat]}
+                      {stat}
+                    </label>
+                    <div className="relative w-28 h-14 flex items-center justify-center rounded-xl bg-white/5 border border-white/5">
+                      <input
+                        type="number"
+                        value={baseStats[key]}
+                        onChange={(e) => handleStatChange(key, e.target.value)}
+                        className="bg-transparent text-2xl font-bold text-white text-center w-full h-full focus:outline-none"
+                        placeholder="0"
+                        min={0}
+                        max={baseStats[key] + remainingPoints}
+                      />
+                    </div>
+                    <div className="text-xs text-white/50 text-center">
+                      <div>Race: <span className="font-semibold text-white/80">{raceVal}</span></div>
+                      <div>Total: <span className="font-semibold text-white/80">{totalVal}</span></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
           {/* Class Progression Section */}
-          <section className="magic-card magic-card-hover border-white/[0.03] space-y-8">
+          <section className="magic-card magic-card-hover border-white/3 space-y-8">
             <div className="flex items-center justify-between">
               <h2 className="text-3xl font-maitree font-bold text-white flex items-center gap-3">
                 <Sparkles className="text-purple-400 w-6 h-6" />
@@ -204,7 +295,7 @@ export default function BuildMaker() {
                     onClick={() => setBaseClass(cls)}
                     className={`relative p-4 rounded-xl border transition-all duration-300 group overflow-hidden text-left ${baseClass?.name === cls.name
                       ? 'border-yellow-500/50 bg-yellow-500/10'
-                      : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                      : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/20'
                       }`}
                   >
                     <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${baseClass?.name === cls.name ? 'text-yellow-500' : 'text-white/30'
@@ -223,39 +314,8 @@ export default function BuildMaker() {
               </div>
             </div>
 
-            {/* 2. Path Selection */}
-            <div className="space-y-4 pt-4 border-t border-white/5">
-              <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs text-white">2</span>
-                Choose Your Path
-              </h3>
-              <div className="flex gap-4">
-                {(['Orderly', 'Chaotic'] as const).map((path) => (
-                  <button
-                    key={path}
-                    onClick={() => {
-                      setClassPath(path);
-                      setSuperClass(null); // Reset super class on path change
-                    }}
-                    className={`flex-1 py-4 rounded-xl border transition-all duration-300 relative overflow-hidden ${classPath === path
-                      ? path === 'Orderly'
-                        ? 'border-blue-400/50 bg-blue-500/10 text-blue-100'
-                        : 'border-red-500/50 bg-red-500/10 text-red-100'
-                      : 'border-white/[0.05] bg-white/[0.02] text-white/40 hover:bg-white/[0.05]'
-                      }`}
-                  >
-                    <span className="relative z-10 text-lg font-maitree font-bold">{path}</span>
-                    {classPath === path && (
-                      <motion.div
-                        layoutId="path-glow"
-                        className={`absolute inset-0 blur-xl -z-10 opacity-30 ${path === 'Orderly' ? 'bg-blue-500' : 'bg-red-500'
-                          }`}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Path chooser removed — Super classes display directly from selected Base */}
+
 
             {/* 3. Super Class Selection */}
             <div className="space-y-4 pt-4 border-t border-white/5">
@@ -266,38 +326,38 @@ export default function BuildMaker() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {CLASSES.filter(c =>
                   c.type === 'Super' &&
-                  c.path === classPath &&
                   baseClass && c.derivedFrom?.includes(baseClass.name)
-                ).map((cls) => (
-                  <button
-                    key={cls.name}
-                    onClick={() => setSuperClass(cls)}
-                    className={`relative p-4 rounded-xl border transition-all duration-300 group overflow-hidden text-left ${superClass?.name === cls.name
-                      ? classPath === 'Orderly'
-                        ? 'border-blue-400/50 bg-blue-500/10'
-                        : 'border-red-500/50 bg-red-500/10'
-                      : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
-                      }`}
-                  >
-                    <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${superClass?.name === cls.name
-                      ? classPath === 'Orderly' ? 'text-blue-400' : 'text-red-400'
-                      : 'text-white/30'
-                      }`}>
-                      Super
-                    </div>
-                    <div className={`font-bold transition-all ${superClass?.name === cls.name ? 'text-white' : 'text-white/70'
-                      }`}>
-                      {cls.name}
-                    </div>
-                  </button>
-                ))}
+                ).map((cls) => {
+                  const path = (cls.path || 'Neutral') as 'Orderly' | 'Neutral' | 'Chaotic';
+                  const active = superClass?.name === cls.name;
+                  const pathActiveClass = path === 'Orderly'
+                    ? 'border-blue-400/50 bg-blue-500/10'
+                    : path === 'Chaotic'
+                      ? 'border-red-500/50 bg-red-500/10'
+                      : 'border-yellow-400/50 bg-yellow-500/10';
+                  const headerTextClass = path === 'Orderly' ? 'text-blue-400' : path === 'Chaotic' ? 'text-red-400' : 'text-yellow-400';
+
+                  return (
+                    <button
+                      key={cls.name}
+                      onClick={() => { setSuperClass(cls); setClassPath(path); }}
+                      className={`relative p-4 rounded-xl border transition-all duration-300 group overflow-hidden text-left ${active ? pathActiveClass : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/20'}`}
+                    >
+                      <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${active ? headerTextClass : 'text-white/30'}`}>
+                        Super
+                      </div>
+                      <div className={`font-bold transition-all ${active ? 'text-white' : 'text-white/70'}`}>
+                        {cls.name}
+                      </div>
+                    </button>
+                  );
+                })}
                 {CLASSES.filter(c =>
                   c.type === 'Super' &&
-                  c.path === classPath &&
                   baseClass && c.derivedFrom?.includes(baseClass.name)
                 ).length === 0 && (
                     <div className="col-span-2 lg:col-span-4 text-center py-8 text-white/20 text-sm border border-dashed border-white/10 rounded-xl">
-                      No compatible Super Classes found for {baseClass?.name} ({classPath})
+                      No compatible Super Classes found for {baseClass?.name}
                     </div>
                   )}
               </div>
@@ -316,7 +376,7 @@ export default function BuildMaker() {
                     onClick={() => setSubClass(subClass?.name === cls.name ? null : cls)}
                     className={`relative p-4 rounded-xl border transition-all duration-300 group overflow-hidden text-left ${subClass?.name === cls.name
                       ? 'border-green-400/50 bg-green-500/10'
-                      : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
+                      : 'border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/20'
                       }`}
                   >
                     <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${subClass?.name === cls.name ? 'text-green-400' : 'text-white/30'
@@ -341,8 +401,8 @@ export default function BuildMaker() {
                 </motion.p>
               )}
               {superClass && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`text-white/40 text-sm border-l-2 pl-4 ${classPath === 'Orderly' ? 'border-blue-500/30' : 'border-red-500/30'}`}>
-                  <span className={`font-bold block text-xs uppercase tracking-widest mb-1 ${classPath === 'Orderly' ? 'text-blue-400' : 'text-red-400'}`}>{superClass.name}</span>
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`text-white/40 text-sm border-l-2 pl-4 ${classPath === 'Orderly' ? 'border-blue-500/30' : classPath === 'Chaotic' ? 'border-red-500/30' : 'border-yellow-500/30'}`}>
+                  <span className={`font-bold block text-xs uppercase tracking-widest mb-1 ${classPath === 'Orderly' ? 'text-blue-400' : classPath === 'Chaotic' ? 'text-red-400' : 'text-yellow-400'}`}>{superClass.name}</span>
                   {superClass.description}
                 </motion.p>
               )}
@@ -357,7 +417,7 @@ export default function BuildMaker() {
           </section>
 
           {/* Arsenal Section */}
-          <section className="magic-card magic-card-hover border-white/[0.03]">
+          <section className="magic-card magic-card-hover border-white/3">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-maitree font-bold text-white flex items-center gap-3">
                 <Sword className="text-blue-400 w-6 h-6" />
@@ -449,8 +509,8 @@ export default function BuildMaker() {
 
         {/* Status Scroll: Right Column */}
         <div className="lg:col-span-4 lg:sticky lg:top-12 h-fit space-y-8">
-          <section className="magic-card !p-0 overflow-hidden border-yellow-500/20 stat-glow-orange">
-            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6">
+          <section className="magic-card p-0! overflow-hidden border-yellow-500/20 stat-glow-orange">
+            <div className="bg-linear-to-br from-yellow-500 to-yellow-600 p-6">
               <h2 className="text-2xl font-maitree font-black text-black flex items-center gap-2">
                 <Target className="w-6 h-6" />
                 <span className="translate-y-0.5">Final Build Output</span>
@@ -468,16 +528,16 @@ export default function BuildMaker() {
               />
               <StatDisplay
                 label="Physical Force"
-                value={finalStats.physicalDamage.toFixed(1)}
+                value={finalStats.physicalDamage.toFixed(1) + '%'}
                 icon={<Sword className="text-orange-400" />}
-                sublabel="ATK"
+                sublabel="ATK%"
                 glowClass="stat-glow-orange"
               />
               <StatDisplay
-                label="Etheric Power"
-                value={finalStats.magicDamage.toFixed(1)}
+                label="Ranged Damage"
+                value={finalStats.magicDamage.toFixed(1) + '%'}
                 icon={<Sparkles className="text-blue-400" />}
-                sublabel="MAG"
+                sublabel="RNG%"
                 glowClass="stat-glow-blue"
               />
               <div className="grid grid-cols-2 gap-4">
@@ -485,7 +545,7 @@ export default function BuildMaker() {
                   label="Critical Fate"
                   value={`${finalStats.critChance.toFixed(1)}%`}
                   icon={<Target className="text-green-400" />}
-                  sublabel="CRI"
+                  sublabel="CRI%"
                   glowClass="stat-glow-green"
                   compact
                 />
@@ -592,10 +652,10 @@ function StatDisplay({ label, value, icon, sublabel, glowClass, compact }: { lab
       initial={{ opacity: 0, x: 20 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
-      className={`${compact ? 'p-3' : 'p-5'} rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-between transition-all duration-300 hover:bg-white/[0.07] hover:border-white/10 ${glowClass}`}
+      className={`${compact ? 'p-3' : 'p-5'} rounded-2xl bg-white/3 border border-white/5 flex items-center justify-between transition-all duration-300 hover:bg-white/7 hover:border-white/10 ${glowClass}`}
     >
       <div className="flex items-center gap-3">
-        <div className={`${compact ? 'p-2' : 'p-3'} bg-white/[0.04] rounded-xl border border-white/5`}>
+        <div className={`${compact ? 'p-2' : 'p-3'} bg-white/4 rounded-xl border border-white/5`}>
           {icon}
         </div>
         {!compact && (
